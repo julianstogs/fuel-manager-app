@@ -1,0 +1,1853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Fuel type colors */
+            --premium-unleaded: #FFB800;
+            --unleaded: #00D4AA;
+            --clear-diesel: #5B8DEE;
+            --red-diesel: #FF5757;
+            
+            /* Dark theme colors */
+            --bg-primary: #0A0A0B;
+            --bg-secondary: #151518;
+            --bg-tertiary: #1C1C21;
+            --bg-card: #242429;
+            --bg-card-hover: #2A2A30;
+            
+            /* Text colors */
+            --text-primary: #FFFFFF;
+            --text-secondary: #9CA3AF;
+            --text-tertiary: #6B7280;
+            
+            /* UI colors */
+            --accent: #6366F1;
+            --accent-hover: #7C7FF3;
+            --border: #2A2A30;
+            --border-light: #3A3A42;
+            
+            /* Status colors */
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(28, 28, 33, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 12px 20px;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .gauge-icon {
+            width: 24px;
+            height: 24px;
+            position: relative;
+        }
+
+        .gauge-icon::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 10px;
+            border: 2px solid white;
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
+            top: 4px;
+            left: 2px;
+        }
+
+        .gauge-icon::after {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 12px;
+            background: white;
+            left: 11px;
+            top: 6px;
+            transform-origin: bottom;
+            transform: rotate(-30deg);
+            border-radius: 1px;
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .settings-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: var(--bg-card);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-secondary);
+        }
+
+        .settings-btn:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+            transform: rotate(90deg);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* iOS-style Tab Selector */
+        .tab-selector {
+            display: flex;
+            justify-content: center;
+            margin: 24px 0;
+        }
+
+        .tab-nav {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 4px;
+            display: inline-flex;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .tab-nav::before {
+            content: '';
+            position: absolute;
+            background: var(--accent);
+            border-radius: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            top: 4px;
+            bottom: 4px;
+            width: calc(50% - 4px);
+            left: 4px;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        }
+
+        .tab-nav.history-active::before {
+            transform: translateX(100%);
+        }
+
+        .tab-button {
+            padding: 8px 24px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: color 0.3s ease;
+            position: relative;
+            z-index: 1;
+            border-radius: 8px;
+            min-width: 100px;
+        }
+
+        .tab-button.active {
+            color: var(--text-primary);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Compartments Section */
+        .compartments-section {
+            background: var(--bg-tertiary);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
+        }
+
+        .compartments-grid {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+
+        .compartments-grid::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .compartments-grid::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 3px;
+        }
+
+        .compartments-grid::-webkit-scrollbar-thumb {
+            background: var(--border-light);
+            border-radius: 3px;
+        }
+
+        .compartment-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 12px;
+            width: 140px;
+            min-width: 140px;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .compartment-card:hover {
+            background: var(--bg-card-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .compartment-edit {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: transparent;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .compartment-edit:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .compartment-gauge {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .gauge-container {
+            position: relative;
+            width: 100px;
+            height: 100px;
+        }
+
+        .gauge-bg {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 180deg,
+                var(--border) 0deg,
+                var(--border) 360deg
+            );
+            padding: 5px;
+        }
+
+        .gauge-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .gauge-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .gauge-unit {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: -2px;
+        }
+
+        .gauge-progress {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            top: 0;
+            left: 0;
+        }
+
+        .compartment-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .compartment-label.premium-unleaded { color: var(--premium-unleaded); }
+        .compartment-label.unleaded { color: var(--unleaded); }
+        .compartment-label.clear-diesel { color: var(--clear-diesel); }
+        .compartment-label.red-diesel { color: var(--red-diesel); }
+
+        /* Stops Section */
+        .stops-section {
+            background: var(--bg-tertiary);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .stops-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .date-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* Stop Cards */
+        .stops-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .stop-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+        }
+
+        .stop-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-light);
+        }
+
+        .stop-card.completed {
+            opacity: 0.6;
+            background: rgba(16, 185, 129, 0.05);
+            border-color: rgba(16, 185, 129, 0.2);
+        }
+
+        .stop-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .stop-card.completed .stop-name {
+            text-decoration: line-through;
+        }
+
+        .stop-address {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: color 0.2s ease;
+        }
+
+        .stop-address:hover {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+
+        .stop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+
+        .stop-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .icon-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .icon-btn.complete-btn {
+            border: 2px solid var(--border-light);
+            border-radius: 50%;
+        }
+
+        .icon-btn.complete-btn:hover {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .icon-btn.complete-btn.completed {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .fuel-type-badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+        }
+
+        .fuel-type-badge.premium-unleaded { 
+            background: rgba(255, 184, 0, 0.2);
+            color: var(--premium-unleaded);
+        }
+        .fuel-type-badge.unleaded { 
+            background: rgba(0, 212, 170, 0.2);
+            color: var(--unleaded);
+        }
+        .fuel-type-badge.clear-diesel { 
+            background: rgba(91, 141, 238, 0.2);
+            color: var(--clear-diesel);
+        }
+        .fuel-type-badge.red-diesel { 
+            background: rgba(255, 87, 87, 0.2);
+            color: var(--red-diesel);
+        }
+
+        .stop-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .stop-detail-item label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stop-notes {
+            margin-top: 12px;
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .stop-notes-header {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Form Inputs */
+        input[type="number"],
+        input[type="text"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        input[type="number"]:focus,
+        input[type="text"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: var(--bg-card);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-content {
+            background: var(--bg-tertiary);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* History */
+        .history-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .history-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .history-card:hover {
+            background: var(--bg-card-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border-color: var(--accent);
+        }
+
+        .history-date {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 6px;
+        }
+
+        .history-stats {
+            display: flex;
+            gap: 20px;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-tertiary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            color: var(--text-secondary);
+        }
+
+        /* Settings Modal */
+        .settings-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 1001;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .settings-modal.show {
+            display: flex;
+        }
+
+        .settings-content {
+            background: var(--bg-tertiary);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .settings-section {
+            margin-bottom: 24px;
+        }
+
+        .settings-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .setting-description {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-top: 2px;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 28px;
+            background: var(--bg-card);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+        }
+
+        .toggle-switch.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch.active::after {
+            left: 22px;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 12px;
+            }
+
+            .compartments-grid {
+                gap: 10px;
+            }
+
+            .compartment-card {
+                width: 120px;
+                min-width: 120px;
+                height: 180px;
+            }
+
+            .gauge-container {
+                width: 85px;
+                height: 85px;
+            }
+
+            .gauge-value {
+                font-size: 18px;
+            }
+
+            .modal-content,
+            .settings-content {
+                width: 95%;
+                padding: 20px;
+            }
+
+            .tab-button {
+                padding: 8px 16px;
+                min-width: 80px;
+                font-size: 13px;
+            }
+
+            .header {
+                padding: 10px 12px;
+            }
+
+            h1 {
+                font-size: 18px;
+            }
+
+            .logo-icon {
+                width: 32px;
+                height: 32px;
+            }
+
+            .settings-btn {
+                width: 32px;
+                height: 32px;
+            }
+        }
+
+                    @media (max-width: 480px) {
+            .compartment-card {
+                width: 110px;
+                min-width: 110px;
+                height: 170px;
+            }
+
+            .gauge-container {
+                width: 80px;
+                height: 80px;
+            }
+
+            .gauge-value {
+                font-size: 16px;
+            }
+
+            .compartment-label {
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <img class="logo-icon" src="./app-logo.svg" alt="Fuel Manager Logo">
+
+                    <!-- <div class="gauge-icon"></div> -->
+                </div>
+                <h1>Fuel Manager</h1>
+            </div>
+            <button class="settings-btn" onclick="openSettings()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M12 1v6m0 6v6m4.22-13.22l4.24 4.24M1.54 1.54l4.24 4.24M20.46 20.46l-4.24-4.24M1.54 20.46l4.24-4.24M23 12h-6m-6 0H1"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- iOS-style Tab Selector -->
+        <div class="tab-selector">
+            <div class="tab-nav" id="tab-nav">
+                <button class="tab-button active" onclick="switchTab('today')">Today</button>
+                <button class="tab-button" onclick="switchTab('history')">History</button>
+            </div>
+        </div>
+
+        <!-- Today Tab -->
+        <div id="today-tab" class="tab-content active">
+            <!-- Compartments Section -->
+            <div class="compartments-section">
+                <h2 class="section-title">Compartment Overview</h2>
+                <div class="compartments-grid" id="compartments-grid">
+                    <!-- Compartments will be generated here -->
+                </div>
+            </div>
+
+            <!-- Stops Section -->
+            <div class="stops-section">
+                <div class="stops-header">
+                    <div>
+                        <h2 class="section-title">Today's Stops</h2>
+                        <div class="date-label" id="current-date"></div>
+                    </div>
+                    <button class="btn btn-primary" onclick="openAddStopModal()">
+                        + Add Stop
+                    </button>
+                </div>
+                <div id="stops-list" class="stops-list">
+                    <!-- Stops will be added here -->
+                </div>
+                <div id="empty-stops" class="empty-state">
+                    <div class="empty-state-icon">📍</div>
+                    <p>No stops planned yet</p>
+                    <p style="font-size: 13px; margin-top: 4px; color: var(--text-tertiary);">Click "Add Stop" to plan your route</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="history-tab" class="tab-content">
+            <div class="history-list" id="history-list">
+                <!-- History items will be displayed here -->
+            </div>
+            <div id="empty-history" class="empty-state">
+                <div class="empty-state-icon">📅</div>
+                <p>No delivery history yet</p>
+                <p style="font-size: 13px; margin-top: 4px; color: var(--text-tertiary);">Complete today's deliveries to build your history</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="settings-modal">
+        <div class="settings-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Settings</h3>
+            </div>
+            
+            <div class="settings-section">
+                <h3>Notifications</h3>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Low Fuel Warnings</div>
+                        <div class="setting-description">Alert when compartment is below 20%</div>
+                    </div>
+                    <div class="toggle-switch active" onclick="toggleSwitch(this)"></div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>Data & Storage</h3>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Auto-save</div>
+                        <div class="setting-description">Automatically save changes</div>
+                    </div>
+                    <div class="toggle-switch active" onclick="toggleSwitch(this)"></div>
+                </div>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Clear History</div>
+                        <div class="setting-description">Remove all delivery history</div>
+                    </div>
+                    <button class="btn btn-danger btn-sm" onclick="clearHistory()">Clear</button>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>About</h3>
+                
+                <div class="setting-item">
+                    <div class="setting-label">Version</div>
+                    <div class="setting-description">1.0.0</div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">Developer</div>
+                    <div class="setting-description">Created by Julian Stogsdill | KCMO</div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">Support</div>
+                    <div class="setting-description">julianstogs@gmail.com</div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="closeSettings()">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Stop Modal -->
+    <div id="stop-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">Add New Stop</h3>
+            </div>
+            <form id="stop-form">
+                <div class="form-group">
+                    <label for="stop-name">Stop Name/Label *</label>
+                    <input type="text" id="stop-name" required placeholder="e.g., Shell Station #123">
+                </div>
+                <div class="form-group">
+                    <label for="stop-street">Street Address *</label>
+                    <input type="text" id="stop-street" required placeholder="123 Main Street">
+                </div>
+                <div class="form-group">
+                    <label for="stop-city">City *</label>
+                    <input type="text" id="stop-city" required placeholder="City Name">
+                </div>
+                <div class="form-group">
+                    <label for="stop-zip">ZIP Code *</label>
+                    <input type="text" id="stop-zip" required placeholder="12345">
+                </div>
+                <div class="form-group">
+                    <label for="stop-fuel-type">Fuel Type *</label>
+                    <select id="stop-fuel-type" required>
+                        <option value="">Select Fuel Type</option>
+                        <option value="premium-unleaded">Premium Unleaded</option>
+                        <option value="unleaded">Unleaded</option>
+                        <option value="clear-diesel">Clear Diesel</option>
+                        <option value="red-diesel">Red Diesel</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" onclick="handleStopSubmit(event); return false;">Save Stop</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notes Modal -->
+    <div id="notes-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Stop Notes</h3>
+            </div>
+            <div class="form-group">
+                <label for="stop-notes-input">Notes</label>
+                <textarea id="stop-notes-input" rows="5" placeholder="Enter any notes or special instructions..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeNotesModal()">Discard</button>
+                <button type="button" class="btn btn-primary" onclick="saveNotes()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Compartment Modal -->
+    <div id="compartment-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Compartment</h3>
+            </div>
+            <div class="form-group">
+                <label for="comp-fuel-type">Fuel Type</label>
+                <select id="comp-fuel-type">
+                    <option value="premium-unleaded">Premium Unleaded</option>
+                    <option value="unleaded">Unleaded</option>
+                    <option value="clear-diesel">Clear Diesel</option>
+                    <option value="red-diesel">Red Diesel</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="comp-capacity">Total Capacity (gallons)</label>
+                <input type="number" id="comp-capacity" min="0" placeholder="1000">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeCompartmentModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveCompartmentChanges()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-confirm-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Delete Stop</h3>
+            </div>
+            <p style="color: var(--text-secondary); margin: 20px 0;">Are you sure you want to delete this stop?</p>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteConfirm()">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDelete()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application state management
+        const APP_STORAGE_KEY = 'fuelDeliveryApp';
+        
+        // Default fuel types with color codes
+        const FUEL_TYPES = {
+            'premium-unleaded': { name: 'Premium Unleaded', color: '#FFB800' },
+            'unleaded': { name: 'Unleaded', color: '#00D4AA' },
+            'clear-diesel': { name: 'Clear Diesel', color: '#5B8DEE' },
+            'red-diesel': { name: 'Red Diesel', color: '#FF5757' }
+        };
+
+        // Application state
+        let appState = {
+            compartments: [
+                { id: 1, capacity: 1000, currentCapacity: 1000, fuelType: 'unleaded' },
+                { id: 2, capacity: 1000, currentCapacity: 1000, fuelType: 'unleaded' },
+                { id: 3, capacity: 1000, currentCapacity: 1000, fuelType: 'clear-diesel' },
+                { id: 4, capacity: 1000, currentCapacity: 1000, fuelType: 'clear-diesel' },
+                { id: 5, capacity: 1000, currentCapacity: 1000, fuelType: 'premium-unleaded' }
+            ],
+            currentDay: null,
+            dailyOverviews: []
+        };
+
+        let currentEditingStop = null;
+        let currentNotesStopId = null;
+        let currentEditingCompartment = null;
+        let stopToDelete = null;
+
+        // Initialize application
+        function init() {
+            loadState();
+            initializeToday();
+            renderCompartments();
+            renderStops();
+            updateCurrentDate();
+            
+            // Set up form submission
+            const stopForm = document.getElementById('stop-form');
+            if (stopForm) {
+                stopForm.addEventListener('submit', handleStopSubmit);
+            }
+        }
+
+        // Load state from localStorage
+        function loadState() {
+            const savedState = localStorage.getItem(APP_STORAGE_KEY);
+            if (savedState) {
+                try {
+                    const parsed = JSON.parse(savedState);
+                    appState = { ...appState, ...parsed };
+                } catch (e) {
+                    console.error('Error loading saved state:', e);
+                }
+            }
+        }
+
+        // Save state to localStorage
+        function saveState() {
+            try {
+                localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(appState));
+            } catch (e) {
+                console.error('Error saving state:', e);
+            }
+        }
+
+        // Initialize today's overview if it doesn't exist
+        function initializeToday() {
+            const today = new Date().toISOString().split('T')[0];
+            
+            let todayOverview = appState.dailyOverviews.find(d => d.date === today);
+            
+            if (!todayOverview) {
+                appState.compartments.forEach(comp => {
+                    comp.currentCapacity = comp.capacity;
+                });
+                
+                todayOverview = {
+                    id: Date.now(),
+                    date: today,
+                    stops: [],
+                    compartmentSnapshot: JSON.parse(JSON.stringify(appState.compartments))
+                };
+                appState.dailyOverviews.push(todayOverview);
+                saveState();
+            } else {
+                appState.compartments = JSON.parse(JSON.stringify(todayOverview.compartmentSnapshot));
+            }
+            
+            appState.currentDay = todayOverview;
+        }
+
+        // Update current date display
+        function updateCurrentDate() {
+            const dateElement = document.getElementById('current-date');
+            const date = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            dateElement.textContent = date.toLocaleDateString('en-US', options);
+        }
+
+        // Create gauge SVG
+        function createGaugeSVG(percentage, color) {
+            const circumference = 2 * Math.PI * 45;
+            const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`;
+            
+            return `
+                <svg class="gauge-progress" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" stroke="${color}" stroke-width="5" 
+                            fill="none" stroke-linecap="round"
+                            stroke-dasharray="${strokeDasharray}"
+                            transform="rotate(-90 50 50)"
+                            style="opacity: 0.3" />
+                    <circle cx="50" cy="50" r="45" stroke="${color}" stroke-width="5" 
+                            fill="none" stroke-linecap="round"
+                            stroke-dasharray="${strokeDasharray}"
+                            transform="rotate(-90 50 50)" />
+                </svg>
+            `;
+        }
+
+        // Render compartments
+        function renderCompartments() {
+            const grid = document.getElementById('compartments-grid');
+            grid.innerHTML = '';
+            
+            appState.compartments.forEach(comp => {
+                const fuelTypeKey = comp.fuelType;
+                const fuelType = FUEL_TYPES[fuelTypeKey];
+                const percentage = (comp.currentCapacity / comp.capacity) * 100;
+                
+                const card = document.createElement('div');
+                card.className = 'compartment-card';
+                card.innerHTML = `
+                    <button class="compartment-edit" onclick="openCompartmentModal(${comp.id})">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </button>
+                    <div class="compartment-gauge">
+                        <div class="gauge-container">
+                            ${createGaugeSVG(percentage, fuelType.color)}
+                            <div class="gauge-bg">
+                                <div class="gauge-inner">
+                                    <div class="gauge-value">${comp.currentCapacity}</div>
+                                    <div class="gauge-unit">gal</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="compartment-label ${fuelTypeKey}">#${comp.id} - ${fuelType.name.toUpperCase()}</div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Open compartment edit modal
+        function openCompartmentModal(compId) {
+            currentEditingCompartment = compId;
+            const comp = appState.compartments.find(c => c.id === compId);
+            if (comp) {
+                document.getElementById('comp-fuel-type').value = comp.fuelType;
+                document.getElementById('comp-capacity').value = comp.capacity;
+                document.getElementById('compartment-modal').classList.add('show');
+            }
+        }
+
+        // Close compartment modal
+        function closeCompartmentModal() {
+            document.getElementById('compartment-modal').classList.remove('show');
+            currentEditingCompartment = null;
+        }
+
+        // Save compartment changes
+        function saveCompartmentChanges() {
+            if (currentEditingCompartment) {
+                const comp = appState.compartments.find(c => c.id === currentEditingCompartment);
+                if (comp) {
+                    const newFuelType = document.getElementById('comp-fuel-type').value;
+                    const newCapacity = parseInt(document.getElementById('comp-capacity').value) || 0;
+                    const difference = newCapacity - comp.capacity;
+                    
+                    comp.fuelType = newFuelType;
+                    comp.capacity = newCapacity;
+                    comp.currentCapacity = Math.max(0, comp.currentCapacity + difference);
+                    
+                    if (appState.currentDay) {
+                        appState.currentDay.compartmentSnapshot = JSON.parse(JSON.stringify(appState.compartments));
+                    }
+                    
+                    saveState();
+                    renderCompartments();
+                }
+            }
+            closeCompartmentModal();
+        }
+
+        // Open address in maps
+        function openInMaps(street, city, zip) {
+            // Encode the address for URL
+            const address = encodeURIComponent(`${street}, ${city}, ${zip}`);
+            
+            // Check if on iOS device
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            
+            // Check if on Android device
+            const isAndroid = /Android/.test(navigator.userAgent);
+            
+            let mapsUrl;
+            
+            if (isIOS) {
+                // Try Apple Maps first, fallback to Google Maps
+                mapsUrl = `maps://maps.apple.com/?q=${address}`;
+                // Fallback URL if Apple Maps doesn't open
+                setTimeout(() => {
+                    window.location.href = `https://maps.google.com/maps?q=${address}`;
+                }, 500);
+            } else if (isAndroid) {
+                // Android - use Google Maps app URL scheme
+                mapsUrl = `geo:0,0?q=${address}`;
+            } else {
+                // Desktop or other - use Google Maps web
+                mapsUrl = `https://maps.google.com/maps?q=${address}`;
+            }
+            
+            window.open(mapsUrl, '_blank');
+        }
+
+        // Render stops
+        function renderStops() {
+            const stopsList = document.getElementById('stops-list');
+            const emptyState = document.getElementById('empty-stops');
+            
+            if (!appState.currentDay || appState.currentDay.stops.length === 0) {
+                stopsList.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            stopsList.style.display = 'flex';
+            emptyState.style.display = 'none';
+            stopsList.innerHTML = '';
+            
+            appState.currentDay.stops.forEach(stop => {
+                const fuelType = FUEL_TYPES[stop.fuelType];
+                const stopCard = document.createElement('div');
+                stopCard.className = `stop-card ${stop.completed ? 'completed' : ''}`;
+                
+                let notesHtml = '';
+                if (stop.notes) {
+                    notesHtml = `
+                        <div class="stop-notes">
+                            <div class="stop-notes-header">Notes</div>
+                            ${stop.notes}
+                        </div>
+                    `;
+                }
+                
+                stopCard.innerHTML = `
+                    <div class="stop-header">
+                        <div class="stop-info">
+                            <div class="stop-name">${stop.name}</div>
+                            <div class="stop-address" onclick="openInMaps('${stop.street}', '${stop.city}', '${stop.zip}')" title="Open in Maps">
+                                📍 ${stop.street}, ${stop.city}, ${stop.zip}
+                            </div>
+                            <span class="fuel-type-badge ${stop.fuelType}">${fuelType.name}</span>
+                        </div>
+                        <div class="stop-actions">
+                            <button class="icon-btn" onclick="openEditStopModal('${stop.id}')" title="Edit Stop">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                            </button>
+                            <button class="icon-btn" onclick="openNotesModal('${stop.id}')" title="Notes">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                            </button>
+                            <button class="icon-btn complete-btn ${stop.completed ? 'completed' : ''}" 
+                                    onclick="toggleStopComplete('${stop.id}')" title="${stop.completed ? 'Mark Incomplete' : 'Mark Complete'}">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="stop-details">
+                        <div class="stop-detail-item">
+                            <label>Gallons Delivered</label>
+                            <input type="number" value="${stop.gallonsDelivered || 0}" min="0" 
+                                   onchange="updateGallonsDelivered('${stop.id}', this.value)"
+                                   ${stop.completed ? 'disabled' : ''}>
+                        </div>
+                    </div>
+                    ${notesHtml}
+                `;
+                
+                stopsList.appendChild(stopCard);
+            });
+        }
+
+        // Open edit stop modal
+        function openEditStopModal(stopId) {
+            const stop = appState.currentDay.stops.find(s => s.id === stopId);
+            if (stop) {
+                currentEditingStop = stopId;
+                document.getElementById('modal-title').textContent = 'Edit Stop';
+                document.getElementById('stop-name').value = stop.name;
+                document.getElementById('stop-street').value = stop.street;
+                document.getElementById('stop-city').value = stop.city;
+                document.getElementById('stop-zip').value = stop.zip;
+                document.getElementById('stop-fuel-type').value = stop.fuelType;
+                
+                // Show delete button when editing
+                const deleteBtn = document.getElementById('delete-stop-btn');
+                if (deleteBtn) {
+                    deleteBtn.style.display = 'block';
+                } else {
+                    // Add delete button if it doesn't exist
+                    const modalFooter = document.querySelector('#stop-modal .modal-footer');
+                    const deleteButton = document.createElement('button');
+                    deleteButton.id = 'delete-stop-btn';
+                    deleteButton.type = 'button';
+                    deleteButton.className = 'btn btn-danger';
+                    deleteButton.textContent = 'Delete Stop';
+                    deleteButton.onclick = deleteStop;
+                    modalFooter.insertBefore(deleteButton, modalFooter.firstChild);
+                }
+                
+                document.getElementById('stop-modal').classList.add('show');
+            }
+        }
+
+        // Open add stop modal
+        function openAddStopModal() {
+            currentEditingStop = null;
+            document.getElementById('modal-title').textContent = 'Add New Stop';
+            document.getElementById('stop-form').reset();
+            
+            // Hide delete button when adding new stop
+            const deleteBtn = document.getElementById('delete-stop-btn');
+            if (deleteBtn) {
+                deleteBtn.style.display = 'none';
+            }
+            
+            document.getElementById('stop-modal').classList.add('show');
+        }
+
+        // Delete stop - show confirmation
+        function deleteStop() {
+            if (currentEditingStop) {
+                stopToDelete = currentEditingStop;
+                document.getElementById('stop-modal').classList.remove('show');
+                document.getElementById('delete-confirm-modal').classList.add('show');
+            }
+        }
+
+        // Close delete confirmation
+        function closeDeleteConfirm() {
+            document.getElementById('delete-confirm-modal').classList.remove('show');
+            stopToDelete = null;
+            // Reopen the edit modal
+            if (currentEditingStop) {
+                document.getElementById('stop-modal').classList.add('show');
+            }
+        }
+
+        // Confirm delete
+        function confirmDelete() {
+            if (stopToDelete && appState.currentDay) {
+                const stopIndex = appState.currentDay.stops.findIndex(s => s.id === stopToDelete);
+                if (stopIndex !== -1) {
+                    appState.currentDay.stops.splice(stopIndex, 1);
+                    saveState();
+                    renderStops();
+                    document.getElementById('delete-confirm-modal').classList.remove('show');
+                    currentEditingStop = null;
+                    stopToDelete = null;
+                }
+            }
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('stop-modal').classList.remove('show');
+            currentEditingStop = null;
+        }
+
+        // Handle stop form submission
+        function handleStopSubmit(e) {
+            if (e) {
+                e.preventDefault();
+            }
+            
+            const nameInput = document.getElementById('stop-name');
+            const streetInput = document.getElementById('stop-street');
+            const cityInput = document.getElementById('stop-city');
+            const zipInput = document.getElementById('stop-zip');
+            const fuelTypeInput = document.getElementById('stop-fuel-type');
+            
+            if (!nameInput.value || !streetInput.value || !cityInput.value || !zipInput.value || !fuelTypeInput.value) {
+                alert('Please fill in all required fields');
+                return false;
+            }
+            
+            const stopData = {
+                id: currentEditingStop || Date.now().toString(),
+                name: nameInput.value,
+                street: streetInput.value,
+                city: cityInput.value,
+                zip: zipInput.value,
+                fuelType: fuelTypeInput.value,
+                gallonsDelivered: 0,
+                completed: false,
+                notes: ''
+            };
+            
+            if (!appState.currentDay) {
+                initializeToday();
+            }
+            
+            if (currentEditingStop) {
+                const stopIndex = appState.currentDay.stops.findIndex(s => s.id === currentEditingStop);
+                if (stopIndex !== -1) {
+                    appState.currentDay.stops[stopIndex] = { 
+                        ...appState.currentDay.stops[stopIndex], 
+                        ...stopData 
+                    };
+                }
+            } else {
+                appState.currentDay.stops.push(stopData);
+            }
+            
+            saveState();
+            renderStops();
+            closeModal();
+            return false;
+        }
+
+        // Update gallons delivered
+        function updateGallonsDelivered(stopId, gallons) {
+            const stop = appState.currentDay.stops.find(s => s.id === stopId);
+            if (stop) {
+                const oldGallons = stop.gallonsDelivered || 0;
+                const newGallons = parseInt(gallons) || 0;
+                const difference = newGallons - oldGallons;
+                
+                const matchingCompartments = appState.compartments.filter(c => c.fuelType === stop.fuelType);
+                
+                if (matchingCompartments.length > 0) {
+                    let remainingDifference = difference;
+                    
+                    for (let comp of matchingCompartments) {
+                        if (remainingDifference > 0) {
+                            const available = comp.currentCapacity;
+                            const toDeduct = Math.min(available, remainingDifference);
+                            comp.currentCapacity -= toDeduct;
+                            remainingDifference -= toDeduct;
+                        } else if (remainingDifference < 0) {
+                            const space = comp.capacity - comp.currentCapacity;
+                            const toAdd = Math.min(space, Math.abs(remainingDifference));
+                            comp.currentCapacity += toAdd;
+                            remainingDifference += toAdd;
+                        }
+                    }
+                    
+                    if (remainingDifference > 0) {
+                        alert(`Warning: Not enough ${FUEL_TYPES[stop.fuelType].name} in compartments. Short by ${remainingDifference} gallons.`);
+                    }
+                }
+                
+                stop.gallonsDelivered = newGallons;
+                appState.currentDay.compartmentSnapshot = JSON.parse(JSON.stringify(appState.compartments));
+                saveState();
+                renderCompartments();
+            }
+        }
+
+        // Toggle stop completion status
+        function toggleStopComplete(stopId) {
+            const stop = appState.currentDay.stops.find(s => s.id === stopId);
+            if (stop) {
+                stop.completed = !stop.completed;
+                saveState();
+                renderStops();
+            }
+        }
+
+        // Open notes modal
+        function openNotesModal(stopId) {
+            const stop = appState.currentDay.stops.find(s => s.id === stopId);
+            if (stop) {
+                currentNotesStopId = stopId;
+                document.getElementById('stop-notes-input').value = stop.notes || '';
+                document.getElementById('notes-modal').classList.add('show');
+            }
+        }
+
+        // Close notes modal
+        function closeNotesModal() {
+            document.getElementById('notes-modal').classList.remove('show');
+            currentNotesStopId = null;
+        }
+
+        // Save notes
+        function saveNotes() {
+            if (currentNotesStopId) {
+                const stop = appState.currentDay.stops.find(s => s.id === currentNotesStopId);
+                if (stop) {
+                    stop.notes = document.getElementById('stop-notes-input').value;
+                    saveState();
+                    renderStops();
+                }
+            }
+            closeNotesModal();
+        }
+
+        // Switch between tabs
+        function switchTab(tab) {
+            const tabNav = document.getElementById('tab-nav');
+            
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            if (tab === 'today') {
+                tabNav.classList.remove('history-active');
+                document.getElementById('today-tab').classList.add('active');
+                initializeToday();
+                renderCompartments();
+                renderStops();
+            } else if (tab === 'history') {
+                tabNav.classList.add('history-active');
+                document.getElementById('history-tab').classList.add('active');
+                renderHistory();
+            }
+        }
+
+        // Render history
+        function renderHistory() {
+            const historyList = document.getElementById('history-list');
+            const emptyState = document.getElementById('empty-history');
+            
+            const today = new Date().toISOString().split('T')[0];
+            const historicalOverviews = appState.dailyOverviews
+                .filter(d => d.date !== today)
+                .sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            if (historicalOverviews.length === 0) {
+                historyList.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            historyList.style.display = 'grid';
+            emptyState.style.display = 'none';
+            historyList.innerHTML = '';
+            
+            historicalOverviews.forEach(overview => {
+                const totalStops = overview.stops.length;
+                const completedStops = overview.stops.filter(s => s.completed).length;
+                const totalGallons = overview.stops.reduce((sum, s) => sum + (s.gallonsDelivered || 0), 0);
+                
+                const card = document.createElement('div');
+                card.className = 'history-card';
+                card.onclick = () => viewHistoricalDay(overview.date);
+                
+                const dateObj = new Date(overview.date + 'T00:00:00');
+                const formattedDate = dateObj.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+                
+                card.innerHTML = `
+                    <div class="history-date">${formattedDate}</div>
+                    <div class="history-stats">
+                        <span>📍 ${completedStops}/${totalStops} stops completed</span>
+                        <span>⛽ ${totalGallons} gallons delivered</span>
+                    </div>
+                `;
+                
+                historyList.appendChild(card);
+            });
+        }
+
+        // View historical day
+        function viewHistoricalDay(date) {
+            const overview = appState.dailyOverviews.find(d => d.date === date);
+            if (overview) {
+                const modal = document.createElement('div');
+                modal.className = 'modal show';
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 700px;">
+                        <div class="modal-header">
+                            <h3 class="modal-title">Delivery Overview - ${new Date(date + 'T00:00:00').toLocaleDateString('en-US', { 
+                                weekday: 'long', 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                            })}</h3>
+                        </div>
+                        <div class="stops-list">
+                            ${overview.stops.map(stop => {
+                                const fuelType = FUEL_TYPES[stop.fuelType];
+                                return `
+                                    <div class="stop-card ${stop.completed ? 'completed' : ''}">
+                                        <div class="stop-header">
+                                            <div class="stop-info">
+                                                <div class="stop-name">${stop.name}</div>
+                                                <div class="stop-address">${stop.street}, ${stop.city}, ${stop.zip}</div>
+                                                <span class="fuel-type-badge ${stop.fuelType}">${fuelType.name}</span>
+                                            </div>
+                                            ${stop.completed ? '<span style="color: var(--success);">✓ Completed</span>' : '<span style="color: var(--text-secondary);">Not Completed</span>'}
+                                        </div>
+                                        <div class="stop-details">
+                                            <div class="stop-detail-item">
+                                                <label>Gallons Delivered</label>
+                                                <div style="font-size: 16px; font-weight: 600;">${stop.gallonsDelivered || 0} gal</div>
+                                            </div>
+                                        </div>
+                                        ${stop.notes ? `
+                                            <div class="stop-notes">
+                                                <div class="stop-notes-header">Notes</div>
+                                                ${stop.notes}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-primary" onclick="this.closest('.modal').remove()">Close</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+        }
+
+        // Settings functions
+        function openSettings() {
+            document.getElementById('settings-modal').classList.add('show');
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.remove('show');
+        }
+
+        function toggleSwitch(element) {
+            element.classList.toggle('active');
+        }
+
+        function clearHistory() {
+            if (confirm('Are you sure you want to clear all delivery history? This cannot be undone.')) {
+                const today = new Date().toISOString().split('T')[0];
+                appState.dailyOverviews = appState.dailyOverviews.filter(d => d.date === today);
+                saveState();
+                alert('History cleared successfully');
+            }
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
